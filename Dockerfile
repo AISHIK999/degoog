@@ -1,4 +1,7 @@
 FROM oven/bun:1.3.14-alpine AS base
+# Alpine 3.24 supplies PHP 8.4.27 (critical security fixes, 2026-10-21).
+RUN sed -i -E "s@/v3\.[0-9]+/@/v3.24/@g" /etc/apk/repositories \
+    && apk update && apk upgrade --available
 WORKDIR /app
 
 FROM base AS install
@@ -15,6 +18,7 @@ FROM base AS release
 COPY scripts/install-curl-impersonate.sh /app/
 RUN apk add --no-cache git ca-certificates su-exec curl bash python3 py3-lxml py3-babel py3-dateutil \
   php84 php84-sodium php84-mbstring php84-openssl \
+  && php84 -r "exit(version_compare(PHP_VERSION, '8.4.27', '>=') ? 0 : 1);" \
   && ln -sf /usr/bin/php84 /usr/bin/php \
   && chmod +x /app/install-curl-impersonate.sh \
   && /app/install-curl-impersonate.sh \
